@@ -1,0 +1,16 @@
+.DS_Store
+~$*
+*.tmp
+
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+*.sqlite
+*.sqlite3
+*.db
+
+modelos/
+.ollama/
