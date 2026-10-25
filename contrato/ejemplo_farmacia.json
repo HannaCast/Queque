@@ -1,0 +1,27 @@
+{
+  "proyecto": "Inventario de farmacia",
+  "resumen": "Sistema para controlar existencias y caducidades",
+  "areas_requeridas": [
+    {
+      "area": "Software",
+      "horas_estimadas": 120,
+      "porcentaje_sugerido": 40,
+      "confianza": "alta",
+      "justificacion": "Sistema de control de existencias"
+    }
+  ],
+  "tareas": [
+    {
+      "titulo": "Diseñar base de datos",
+      "area": "Software",
+      "prioridad": "alta",
+      "depende_de": []
+    }
+  ],
+  "supuestos": [
+    "El documento no indica cuántas sucursales hay"
+  ],
+  "preguntas_pendientes": [
+    "¿Se usarán lectores de código de barras?"
+  ]
+}
