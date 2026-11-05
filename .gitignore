@@ -14,3 +14,7 @@ venv/
 
 modelos/
 .ollama/
+
+node_modules/
+dist/
+frontend/dist/

@@ -31,7 +31,7 @@ Las áreas del catálogo inicial son Software, Redes, Marketing y Mecatrónica.
 | Nueva solicitud | Pegar la nota o subir el archivo |
 | Proyecto | Brief, áreas, sugerencia, a quién se saltó, y confirmar o cambiar |
 | Dashboard | Ocupación, proyecto actual y porcentaje libre de cada persona |
-| Equipo | Alta y edición de personas, áreas y capacidad |
+| Equipo | Personas, áreas y ocupación. Llegan desde la intranet |
 
 ## Cómo está armado
 
@@ -54,12 +54,23 @@ Si el análisis se pasa de memoria, ese trabajo queda en error. El dashboard sig
 
 | Ruta | Contenido |
 | --- | --- |
+| `frontend/` | Interfaz web de las cinco pantallas |
 | `contrato/brief.schema.json` | Forma del brief que devuelve la IA |
 | `contrato/ejemplo_farmacia.json` | Brief de ejemplo: inventario de farmacia |
 | `contrato/esquema.sql` | Tablas de la base |
 | `contrato/personas_ejemplo.sql` | Personas de prueba: Moody, GESA y Leo |
 
 `trabajos` guarda la nota y el brief. `personas`, `habilidades`, `proyectos`, `tareas` y `asignaciones` guardan al equipo, la carga y la sugerencia.
+
+## Cómo ver el frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Abre la URL de Vite (por defecto `http://localhost:5173`). La interfaz arranca con datos de ejemplo; todavía no está conectada al backend.
 
 ## Primera versión
 
