@@ -1,0 +1,20 @@
+# Modelo local con tope de CPU y RAM, como pide el README del repo (análisis: 2 vCPU y 4 GB).
+# NO se probó aquí (sin Docker en el entorno de trabajo). Revisa los nombres de las variables
+# contra la versión de Ollama que instales.
+#
+#   docker compose -f deploy/ollama.compose.yml up -d
+#   docker exec queque-ollama ollama pull qwen2.5:3b      # modelo de ejemplo (~2 GB); el definitivo está por decidir
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: queque-ollama
+    ports: ["127.0.0.1:11434:11434"]     # solo accesible desde la propia máquina
+    volumes: ["./modelos:/root/.ollama"] # `modelos/` ya está en el .gitignore del repo
+    environment:
+      OLLAMA_KEEP_ALIVE: "0"             # descarga el modelo de la RAM al terminar cada documento
+      OLLAMA_NUM_PARALLEL: "1"           # un documento a la vez
+      OLLAMA_MAX_LOADED_MODELS: "1"
+    deploy:
+      resources:
+        limits: { cpus: "2.0", memory: 4g }
+    restart: unless-stopped
