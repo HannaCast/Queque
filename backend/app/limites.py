@@ -12,7 +12,9 @@ from __future__ import annotations
 import multiprocessing as mp
 import os
 import queue
+import sys
 import time
+from pathlib import Path
 
 from .errores import ErrorProcesamiento
 
@@ -20,6 +22,14 @@ try:
     import resource
 except ImportError:  # Windows
     resource = None  # type: ignore[assignment]
+
+# /proc/self/statm y RLIMIT_AS como tope duro solo existen de forma fiable en Linux.
+# En macOS el módulo resource existe, pero /proc no: sin este chequeo el análisis truena.
+_SOPORTA_TOPE_MEMORIA = (
+    resource is not None
+    and sys.platform.startswith("linux")
+    and Path("/proc/self/statm").exists()
+)
 
 
 def _memoria_virtual_actual() -> int:
@@ -29,7 +39,7 @@ def _memoria_virtual_actual() -> int:
 
 def _hijo(salida, fn, args, mem_mb):
     try:
-        if resource is not None and mem_mb:
+        if _SOPORTA_TOPE_MEMORIA and mem_mb:
             # El tope es sobre la memoria ADICIONAL: se suma lo que el intérprete ya ocupa al arrancar.
             tope = _memoria_virtual_actual() + mem_mb * 1024 * 1024
             resource.setrlimit(resource.RLIMIT_AS, (tope, tope))

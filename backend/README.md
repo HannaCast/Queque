@@ -1,21 +1,25 @@
 # Backend de Queque (Python)
 
 Ejemplo de cómo conectar el contrato y el frontend que ya están en el repositorio con un backend en Python.
-Se coloca en `backend/`, junto a `contrato/` y `frontend/`. Usa FastAPI y SQLite, sin infraestructura extra.
+Vive en `backend/`, junto a `contrato/` y `frontend/`. Usa FastAPI y SQLite, sin infraestructura extra.
 
 ```
 Queque/
-├── contrato/            ← ya existe; el backend lo LEE, no lo copia
-├── frontend/            ← ya existe
-├── backend/             ← esto
+├── contrato/            ← el backend lo LEE, no lo copia
+├── frontend/            ← consume /api
+├── backend/
 │   ├── app/
-│   │   ├── main.py          API (arranque)            ├── asignacion.py   reglas del README, código puro
-│   │   ├── rutas.py         endpoints                 ├── extraccion.py   archivo → texto (un extractor por formato)
-│   │   ├── servicios.py     el pipeline paso a paso   ├── limites.py      tope de memoria/tiempo en proceso hijo
-│   │   ├── repositorio.py   SQL                       ├── analisis/       modelo local (Ollama) o analizador de prueba
-│   │   ├── worker.py        procesa la cola           ├── contrato.py     lee brief.schema.json
+│   │   ├── main.py          API (arranque)
+│   │   ├── rutas.py         endpoints
+│   │   ├── servicios.py     el pipeline paso a paso
+│   │   ├── repositorio.py   SQL
+│   │   ├── worker.py        procesa la cola
+│   │   ├── asignacion.py    reglas del README
+│   │   ├── extraccion.py    archivo → texto
+│   │   ├── limites.py       tope de memoria/tiempo
+│   │   ├── analisis/        modelo local o de prueba
 │   │   └── ajustes_001.sql  ajustes aditivos al esquema
-│   └── tests/               27 pruebas
+│   └── tests/
 └── deploy/ollama.compose.yml
 ```
 

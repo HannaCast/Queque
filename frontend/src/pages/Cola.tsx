@@ -3,7 +3,7 @@ import { useQueque } from '../context/QuequeContext'
 import { etiquetaEstado } from '../data/mock'
 
 export function Cola() {
-  const { proyectos, personas } = useQueque()
+  const { proyectos, personas, cargando, error, refrescar } = useQueque()
 
   return (
     <section className="page">
@@ -16,13 +16,22 @@ export function Cola() {
             Desde aquí abres un proyecto o creas una nota nueva.
           </p>
         </div>
-        <Link className="btn" to="/nueva">
-          Nueva solicitud
-        </Link>
+        <div className="actions">
+          <button className="btn btn-secondary" type="button" onClick={() => void refrescar()}>
+            Actualizar
+          </button>
+          <Link className="btn" to="/nueva">
+            Nueva solicitud
+          </Link>
+        </div>
       </div>
 
+      {error ? <p className="saltado">{error}</p> : null}
+
       <div className="list">
-        {proyectos.length === 0 ? (
+        {cargando ? (
+          <div className="empty panel">Cargando la cola…</div>
+        ) : proyectos.length === 0 ? (
           <div className="empty panel">Todavía no hay proyectos en la cola.</div>
         ) : (
           proyectos.map((proyecto) => {

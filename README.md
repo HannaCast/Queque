@@ -55,6 +55,8 @@ Si el análisis se pasa de memoria, ese trabajo queda en error. El dashboard sig
 | Ruta | Contenido |
 | --- | --- |
 | `frontend/` | Interfaz web de las cinco pantallas |
+| `backend/` | API, worker, asignación y análisis |
+| `deploy/` | Compose de Ollama con tope de CPU y RAM |
 | `contrato/brief.schema.json` | Forma del brief que devuelve la IA |
 | `contrato/ejemplo_farmacia.json` | Brief de ejemplo: inventario de farmacia |
 | `contrato/esquema.sql` | Tablas de la base |
@@ -62,7 +64,29 @@ Si el análisis se pasa de memoria, ese trabajo queda en error. El dashboard sig
 
 `trabajos` guarda la nota y el brief. `personas`, `habilidades`, `proyectos`, `tareas` y `asignaciones` guardan al equipo, la carga y la sugerencia.
 
-## Cómo ver el frontend
+## Cómo correrlo
+
+Terminal 1 — API:
+
+```bash
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python -m app.cli seed
+export QUEQUE_ANALIZADOR=falso
+uvicorn app.main:crear_app --factory --port 8000
+```
+
+Terminal 2 — worker (procesa la cola):
+
+```bash
+cd backend
+source .venv/bin/activate
+export QUEQUE_ANALIZADOR=falso
+python -m app.worker
+```
+
+Terminal 3 — frontend:
 
 ```bash
 cd frontend
@@ -70,7 +94,7 @@ npm install
 npm run dev
 ```
 
-Abre la URL de Vite (por defecto `http://localhost:5173`). La interfaz arranca con datos de ejemplo; todavía no está conectada al backend.
+Abre `http://localhost:5173`. Vite reenvía `/api` al backend en el puerto 8000.
 
 ## Primera versión
 

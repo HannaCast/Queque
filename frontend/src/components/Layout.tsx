@@ -13,7 +13,7 @@ export function Layout() {
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true" />
-          <span className="brand-name">Network</span>
+          <span className="brand-name">Nextword</span>
           <span className="brand-tag">encolado de proyectos</span>
         </div>
         <nav className="nav" aria-label="Principal">

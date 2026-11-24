@@ -1,10 +1,12 @@
-# Frontend de Queque
+# Frontend de Nextword
 
 Interfaz web de las cinco pantallas: Cola, Nueva solicitud, Proyecto, Dashboard y Equipo.
 
-Por ahora usa datos de ejemplo del contrato (Moody, GESA, Leo e Inventario de farmacia). Todavía no habla con un backend.
+Habla con el backend por `/api`. En desarrollo, Vite reenvía esas peticiones a `http://localhost:8000`.
 
 ## Cómo correrlo
+
+Con la API y el worker ya encendidos:
 
 ```bash
 cd frontend
@@ -16,7 +18,8 @@ Abre la URL que imprime Vite, normalmente `http://localhost:5173`.
 
 ## Flujo de prueba
 
-1. En **Cola** abre Inventario de farmacia.
-2. Confirma la sugerencia a GESA (Moody aparece saltado por estar al 100 %).
-3. Ve al **Dashboard** y revisa que la ocupación de GESA subió.
-4. En **Nueva solicitud** pega una nota; si menciona farmacia o inventario, reutiliza el brief de ejemplo.
+1. En el backend corre `python -m app.cli seed` (Moody, GESA y Leo).
+2. En **Nueva solicitud** pega una nota de inventario o farmacia.
+3. Abre el proyecto: mientras esté en `nuevo`, la pantalla consulta sola cada pocos segundos.
+4. Confirma la sugerencia (debe proponer a Leo, no a Moody).
+5. Ve al **Dashboard** y revisa la ocupación.

@@ -18,3 +18,6 @@ modelos/
 node_modules/
 dist/
 frontend/dist/
+backend/datos/
+backend/.venv/
+*.egg-info/

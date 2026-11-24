@@ -6,26 +6,23 @@ export function NuevaSolicitud() {
   const { agregarSolicitud } = useQueque()
   const navigate = useNavigate()
   const [texto, setTexto] = useState('')
-  const [archivo, setArchivo] = useState<string | undefined>()
-  const [analizando, setAnalizando] = useState(false)
+  const [archivo, setArchivo] = useState<File | undefined>()
+  const [enviando, setEnviando] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  function onFileChange(fileList: FileList | null) {
-    const file = fileList?.[0]
-    setArchivo(file?.name)
-  }
-
-  function onSubmit(event: FormEvent) {
+  async function onSubmit(event: FormEvent) {
     event.preventDefault()
     if (!texto.trim() && !archivo) return
 
-    setAnalizando(true)
-    window.setTimeout(() => {
-      const id = agregarSolicitud(
-        texto.trim() || `Archivo recibido: ${archivo}`,
-        archivo,
-      )
+    setEnviando(true)
+    setError(null)
+    try {
+      const id = await agregarSolicitud(texto, archivo)
       navigate(`/proyecto/${id}`)
-    }, 1200)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo enviar la solicitud')
+      setEnviando(false)
+    }
   }
 
   return (
@@ -49,7 +46,7 @@ export function NuevaSolicitud() {
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             placeholder="Ejemplo: hay que hacer un sistema de inventarios para una farmacia..."
-            disabled={analizando}
+            disabled={enviando}
           />
           <span className="hint">
             Puede venir desordenado, incompleto o con faltas. Eso es el caso normal.
@@ -57,21 +54,47 @@ export function NuevaSolicitud() {
         </div>
 
         <div className="field">
-          <label htmlFor="archivo">Archivo opcional</label>
-          <input
-            id="archivo"
-            type="file"
-            accept=".txt,.doc,.docx,.pdf,.md"
-            onChange={(e) => onFileChange(e.target.files)}
-            disabled={analizando}
-          />
-          {archivo ? <span className="hint">Seleccionado: {archivo}</span> : null}
+          <span id="archivo-label">Archivo opcional</span>
+          <label
+            className={`file-picker${archivo ? ' has-file' : ''}${enviando ? ' is-disabled' : ''}`}
+            htmlFor="archivo"
+          >
+            <input
+              id="archivo"
+              type="file"
+              accept=".txt,.md,.docx,.pdf"
+              onChange={(e) => setArchivo(e.target.files?.[0])}
+              disabled={enviando}
+              aria-labelledby="archivo-label"
+            />
+            <span className="file-picker-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none">
+                <path
+                  d="M12 16V4m0 0 4 4m-4-4-4 4M5 16.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-1.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+            <span className="file-picker-copy">
+              <strong>{archivo ? archivo.name : 'Seleccionar archivo'}</strong>
+              <small>
+                {archivo
+                  ? 'Haz clic para cambiarlo'
+                  : 'TXT, MD, DOCX o PDF con texto'}
+              </small>
+            </span>
+          </label>
         </div>
 
-        {analizando ? (
+        {error ? <p className="saltado">{error}</p> : null}
+
+        {enviando ? (
           <div className="analizando" role="status" aria-live="polite">
-            <strong>Analizando el documento…</strong>
-            <span>Usando solo el cupo de CPU y RAM del análisis.</span>
+            <strong>Enviando a la cola…</strong>
+            <span>El análisis sigue en el worker; la pantalla del proyecto se actualiza sola.</span>
             <div className="analizando-bar">
               <span />
             </div>

@@ -34,6 +34,7 @@ export interface Persona {
   porcentaje_ocupado: number
   areas: Area[]
   proyecto_actual?: string
+  libre?: number
 }
 
 export interface AsignacionSugerida {
@@ -59,4 +60,6 @@ export interface Proyecto {
   creado_en: string
   sugerencias: AsignacionSugerida[]
   saltados: PersonaSaltada[]
+  requiere_revision?: boolean
+  error?: string
 }
