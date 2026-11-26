@@ -1,7 +1,8 @@
 """SQLite: conexión, esquema y transacciones.
 
 El esquema base es contrato/esquema.sql, tal cual está en el repositorio. Encima se aplican
-solo ajustes ADITIVOS (app/ajustes_001.sql); ver README del backend para el porqué.
+solo ajustes ADITIVOS (app/ajustes_001.sql, app/ajustes_002.sql); ver README del backend para el porqué.
+PRAGMA user_version dice cuáles ya se aplicaron, así una base existente recibe solo lo que le falta.
 """
 from __future__ import annotations
 
@@ -11,7 +12,7 @@ from pathlib import Path
 
 from .config import Config
 
-VERSION_ESQUEMA = 1
+VERSION_ESQUEMA = 2
 
 
 def conectar(cfg: Config) -> sqlite3.Connection:
@@ -26,11 +27,14 @@ def conectar(cfg: Config) -> sqlite3.Connection:
 
 
 def inicializar(con: sqlite3.Connection, cfg: Config) -> None:
-    if con.execute("PRAGMA user_version").fetchone()[0] >= VERSION_ESQUEMA:
-        return
-    con.executescript((cfg.contrato_dir / "esquema.sql").read_text(encoding="utf-8"))
-    con.executescript((Path(__file__).parent / "ajustes_001.sql").read_text(encoding="utf-8"))
-    con.execute(f"PRAGMA user_version={VERSION_ESQUEMA}")
+    version = con.execute("PRAGMA user_version").fetchone()[0]
+    if version < 1:
+        con.executescript((cfg.contrato_dir / "esquema.sql").read_text(encoding="utf-8"))
+        con.executescript((Path(__file__).parent / "ajustes_001.sql").read_text(encoding="utf-8"))
+        con.execute("PRAGMA user_version=1")
+    if version < 2:
+        con.executescript((Path(__file__).parent / "ajustes_002.sql").read_text(encoding="utf-8"))   # usuarios y sesiones
+        con.execute("PRAGMA user_version=2")
 
 
 @contextmanager

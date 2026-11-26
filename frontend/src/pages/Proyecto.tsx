@@ -1,7 +1,114 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useAvisos } from '../components/Avisos'
+import { Icono, type NombreIcono } from '../components/Icono'
+import { useAuth } from '../context/AuthContext'
 import { useQueque } from '../context/QuequeContext'
 import { etiquetaEstado } from '../data/mock'
+import type { EstadoProyecto } from '../types'
+import { mensajeAmigable } from '../utils/errores'
+
+type EstadoPaso = 'hecho' | 'actual' | 'pendiente' | 'alerta' | 'error'
+
+interface Paso {
+  titulo: string
+  detalle: string
+  estado: EstadoPaso
+}
+
+function pasosDe(estado: EstadoProyecto): Paso[] {
+  const recibido: Paso = { titulo: 'Recibido', detalle: 'Nota en la cola', estado: 'hecho' }
+  switch (estado) {
+    case 'nuevo':
+      return [
+        recibido,
+        { titulo: 'Analizado', detalle: 'Leyendo la nota…', estado: 'actual' },
+        { titulo: 'Sugerido', detalle: 'Esperando el brief', estado: 'pendiente' },
+        { titulo: 'Confirmado', detalle: 'Sin asignar', estado: 'pendiente' },
+      ]
+    case 'error':
+      return [
+        recibido,
+        { titulo: 'Analizado', detalle: 'El análisis falló', estado: 'error' },
+        { titulo: 'Sugerido', detalle: 'Sin brief', estado: 'pendiente' },
+        { titulo: 'Confirmado', detalle: 'Sin asignar', estado: 'pendiente' },
+      ]
+    case 'en_espera':
+      return [
+        recibido,
+        { titulo: 'Analizado', detalle: 'Brief listo', estado: 'hecho' },
+        { titulo: 'Sugerido', detalle: 'En espera: nadie libre', estado: 'alerta' },
+        { titulo: 'Confirmado', detalle: 'Sin asignar', estado: 'pendiente' },
+      ]
+    case 'sugerido':
+      return [
+        recibido,
+        { titulo: 'Analizado', detalle: 'Brief listo', estado: 'hecho' },
+        { titulo: 'Sugerido', detalle: 'Falta confirmar', estado: 'actual' },
+        { titulo: 'Confirmado', detalle: 'Sin asignar', estado: 'pendiente' },
+      ]
+    case 'confirmado':
+      return [
+        recibido,
+        { titulo: 'Analizado', detalle: 'Brief listo', estado: 'hecho' },
+        { titulo: 'Sugerido', detalle: 'Persona elegida', estado: 'hecho' },
+        { titulo: 'Confirmado', detalle: 'Asignación hecha', estado: 'hecho' },
+      ]
+  }
+}
+
+function iconoPaso(estado: EstadoPaso, numero: number) {
+  if (estado === 'hecho') return <Icono nombre="check" tamano={15} />
+  if (estado === 'error' || estado === 'alerta') return <Icono nombre="alerta" tamano={15} />
+  return numero
+}
+
+const NOTA_LARGA_CARACTERES = 600
+const NOTA_LARGA_LINEAS = 10
+
+function NotaOriginal({ texto }: { texto: string }) {
+  const [abierta, setAbierta] = useState(false)
+  // Une los saltos de Windows (\r\n) y deja como máximo un renglón en blanco seguido.
+  const limpio = texto.replace(/\r\n?/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
+  const larga =
+    limpio.length > NOTA_LARGA_CARACTERES || limpio.split('\n').length > NOTA_LARGA_LINEAS
+
+  return (
+    <>
+      <p className={`hint nota-original${larga && !abierta ? ' recortada' : ''}`}>{limpio}</p>
+      {larga ? (
+        <button
+          type="button"
+          className="nota-toggle"
+          onClick={() => setAbierta(!abierta)}
+          aria-expanded={abierta}
+        >
+          {abierta ? 'Ver menos' : `Ver nota completa (${limpio.length.toLocaleString('es-MX')} caracteres)`}
+        </button>
+      ) : null}
+    </>
+  )
+}
+
+function SoloConsulta() {
+  return (
+    <p className="solo-consulta">
+      <Icono nombre="candado" tamano={15} />
+      Tu rol es de consulta: un coordinador o administrador hace los cambios.
+    </p>
+  )
+}
+
+function TituloBrief({ icono, children }: { icono: NombreIcono; children: string }) {
+  return (
+    <strong className="brief-titulo">
+      <span className="brief-icono">
+        <Icono nombre={icono} tamano={15} />
+      </span>
+      {children}
+    </strong>
+  )
+}
 
 export function Proyecto() {
   const { id } = useParams()
@@ -13,6 +120,8 @@ export function Proyecto() {
     reintentar,
     obtenerProyecto,
   } = useQueque()
+  const { puedeEditar } = useAuth()
+  const avisar = useAvisos()
   const proyectoId = Number(id)
   const proyecto = proyectos.find((p) => p.id === proyectoId)
   const [accionError, setAccionError] = useState<string | null>(null)
@@ -60,13 +169,16 @@ export function Proyecto() {
   const yaConfirmado = proyecto.estado === 'confirmado'
   const analizando = proyecto.estado === 'nuevo'
 
-  async function correr(accion: () => Promise<void>) {
+  async function correr(accion: () => Promise<void>, exito: string) {
     setOcupado(true)
     setAccionError(null)
     try {
       await accion()
+      avisar(exito)
     } catch (e) {
-      setAccionError(e instanceof Error ? e.message : 'No se pudo completar la acción')
+      const mensaje = mensajeAmigable(e)
+      setAccionError(mensaje)
+      avisar(mensaje, 'error')
     } finally {
       setOcupado(false)
     }
@@ -84,6 +196,18 @@ export function Proyecto() {
           {etiquetaEstado(proyecto.estado)}
         </span>
       </div>
+
+      <ol className="pasos" aria-label="Avance del proyecto">
+        {pasosDe(proyecto.estado).map((paso, i) => (
+          <li key={paso.titulo} className={`paso paso-${paso.estado}`}>
+            <span className="paso-marca">{iconoPaso(paso.estado, i + 1)}</span>
+            <span className="paso-texto">
+              <strong>{paso.titulo}</strong>
+              <small>{paso.detalle}</small>
+            </span>
+          </li>
+        ))}
+      </ol>
 
       {analizando ? (
         <div className="analizando" role="status" aria-live="polite" style={{ marginBottom: '1rem' }}>
@@ -115,11 +239,11 @@ export function Proyecto() {
           {brief ? (
             <div className="brief-grid">
               <div className="brief-item">
-                <strong>Resumen</strong>
+                <TituloBrief icono="resumen">Resumen</TituloBrief>
                 <p>{brief.resumen}</p>
               </div>
               <div className="brief-item">
-                <strong>Áreas requeridas</strong>
+                <TituloBrief icono="areas">Áreas requeridas</TituloBrief>
                 <ul className="muted-list">
                   {brief.areas_requeridas.map((area) => (
                     <li key={area.area}>
@@ -130,7 +254,7 @@ export function Proyecto() {
                 </ul>
               </div>
               <div className="brief-item">
-                <strong>Tareas</strong>
+                <TituloBrief icono="tareas">Tareas</TituloBrief>
                 <ul className="muted-list">
                   {brief.tareas.map((tarea) => (
                     <li key={tarea.titulo}>
@@ -141,7 +265,7 @@ export function Proyecto() {
               </div>
               {brief.supuestos.length > 0 ? (
                 <div className="brief-item">
-                  <strong>Supuestos</strong>
+                  <TituloBrief icono="supuestos">Supuestos</TituloBrief>
                   <ul className="muted-list">
                     {brief.supuestos.map((item) => (
                       <li key={item}>{item}</li>
@@ -151,7 +275,7 @@ export function Proyecto() {
               ) : null}
               {brief.preguntas_pendientes.length > 0 ? (
                 <div className="brief-item">
-                  <strong>Preguntas pendientes</strong>
+                  <TituloBrief icono="preguntas">Preguntas pendientes</TituloBrief>
                   <ul className="muted-list">
                     {brief.preguntas_pendientes.map((item) => (
                       <li key={item}>{item}</li>
@@ -161,8 +285,8 @@ export function Proyecto() {
               ) : null}
               {proyecto.texto_crudo ? (
                 <div className="brief-item">
-                  <strong>Nota original</strong>
-                  <p className="hint">{proyecto.texto_crudo}</p>
+                  <TituloBrief icono="nota">Nota original</TituloBrief>
+                  <NotaOriginal texto={proyecto.texto_crudo} />
                 </div>
               ) : null}
             </div>
@@ -203,15 +327,16 @@ export function Proyecto() {
                 )
               })}
 
+              {!puedeEditar && !yaConfirmado ? <SoloConsulta /> : null}
               <div className="actions">
-                {!yaConfirmado ? (
+                {!yaConfirmado && puedeEditar ? (
                   <>
                     <button
                       className="btn btn-signal"
                       type="button"
                       disabled={ocupado}
                       onClick={() =>
-                        void correr(() => confirmarAsignacion(proyecto.id))
+                        void correr(() => confirmarAsignacion(proyecto.id), 'Asignación confirmada')
                       }
                     >
                       Confirmar asignación
@@ -220,14 +345,16 @@ export function Proyecto() {
                       className="btn btn-secondary"
                       type="button"
                       disabled={ocupado}
-                      onClick={() => void correr(() => resugerir(proyecto.id))}
+                      onClick={() => void correr(() => resugerir(proyecto.id), 'Se generó una nueva sugerencia')}
                     >
                       Volver a sugerir
                     </button>
                   </>
-                ) : (
-                  <span className="chip chip-confirmado">Ya confirmada</span>
-                )}
+                ) : yaConfirmado ? (
+                  <span className="chip chip-confirmado">
+                    <Icono nombre="check" tamano={14} /> Ya confirmada
+                  </span>
+                ) : null}
                 <Link className="btn btn-secondary" to="/dashboard">
                   Ver dashboard
                 </Link>
@@ -242,23 +369,26 @@ export function Proyecto() {
                     ? 'No hay sugerencia porque el análisis falló.'
                     : 'Todavía no hay sugerencia.'}
               </p>
+              {!puedeEditar && (proyecto.estado === 'error' || proyecto.estado === 'en_espera') ? (
+                <SoloConsulta />
+              ) : null}
               <div className="actions">
-                {proyecto.estado === 'error' ? (
+                {proyecto.estado === 'error' && puedeEditar ? (
                   <button
                     className="btn"
                     type="button"
                     disabled={ocupado}
-                    onClick={() => void correr(() => reintentar(proyecto.id))}
+                    onClick={() => void correr(() => reintentar(proyecto.id), 'Análisis reenviado a la cola')}
                   >
                     Reintentar análisis
                   </button>
                 ) : null}
-                {proyecto.estado === 'en_espera' ? (
+                {proyecto.estado === 'en_espera' && puedeEditar ? (
                   <button
                     className="btn btn-secondary"
                     type="button"
                     disabled={ocupado}
-                    onClick={() => void correr(() => resugerir(proyecto.id))}
+                    onClick={() => void correr(() => resugerir(proyecto.id), 'Se generó una nueva sugerencia')}
                   >
                     Volver a sugerir
                   </button>

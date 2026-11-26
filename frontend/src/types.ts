@@ -63,3 +63,12 @@ export interface Proyecto {
   requiere_revision?: boolean
   error?: string
 }
+
+export type Rol = 'admin' | 'coordinador' | 'consulta'
+
+export interface Usuario {
+  id: number
+  correo: string
+  nombre: string
+  rol: Rol
+}

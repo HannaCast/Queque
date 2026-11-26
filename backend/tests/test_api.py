@@ -165,15 +165,13 @@ def test_dashboard_y_cola(cliente, procesar):
 def test_modo_automatico_confirma_solo_lo_seguro_y_deja_lo_dudoso_para_una_persona(cfg, con, contrato):
     from dataclasses import replace
 
-    from fastapi.testclient import TestClient
-
     from app import servicios
     from app.analisis.falso import AnalizadorFalso
-    from app.main import crear_app
+    from tests.conftest import crear_y_entrar
 
     auto = replace(cfg, confirmacion_automatica=True)
     analizador = AnalizadorFalso(contrato.areas)
-    with TestClient(crear_app(auto)) as c:
+    with crear_y_entrar(auto, con, "coordinador") as c:            # el modo automático también exige sesión
         claro = enviar(c, "sistema web de inventario para la farmacia")      # confianza media → se confirma solo
         vago = enviar(c, "algo muy vago")                                    # confianza baja → revisión humana
         servicios.procesar_siguiente(con, auto, contrato, analizador)

@@ -30,6 +30,7 @@ cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python -m app.cli seed                                   # Moody, GESA y Leo (contrato/personas_ejemplo.sql)
+python -m app.cli crear-usuario --correo tu@correo.com --nombre "Tu nombre" --rol admin   # pide la contraseña
 
 export QUEQUE_ANALIZADOR=falso                           # sin modelo, para desarrollar. Quita esta línea para usar Ollama
 uvicorn app.main:crear_app --factory --port 8000         # terminal 1: API y dashboard
@@ -40,6 +41,31 @@ python -m pytest                                         # pruebas
 
 La API y el worker son **procesos distintos** a propósito (README: "si el análisis se pasa de memoria, ese trabajo queda
 en error; el dashboard sigue respondiendo"). Comparten la base SQLite en modo WAL.
+
+## Inicio de sesión y roles
+
+Todas las rutas de `/api` piden sesión, menos `/api/salud`, `/api/auth/login` y `/api/intranet/sync`
+(que sigue con su propio token). No hay registro abierto: los usuarios se crean desde la terminal.
+
+| Rol | Puede |
+| --- | --- |
+| `admin` | Todo lo de coordinador. Pensado para gestionar usuarios cuando exista esa pantalla |
+| `coordinador` | Crear solicitudes, confirmar asignaciones, volver a sugerir y reintentar análisis |
+| `consulta` | Solo ver la cola, los proyectos, el dashboard y el equipo (la API responde 403 a los cambios) |
+
+```bash
+python -m app.cli crear-usuario --correo ana@utez.edu.mx --nombre "Ana" --rol coordinador
+python -m app.cli listar-usuarios
+python -m app.cli cambiar-contrasena --correo ana@utez.edu.mx   # también cierra sus sesiones abiertas
+python -m app.cli desactivar-usuario --correo ana@utez.edu.mx   # y activar-usuario para revertirlo
+```
+
+- Contraseñas con `scrypt` y sal por usuario (biblioteca estándar, sin dependencias nuevas). Mínimo 8 caracteres.
+- La sesión es una cookie `HttpOnly` y `SameSite=Lax` que dura `QUEQUE_SESION_HORAS` (8 por defecto). En la base solo se
+  guarda el SHA-256 del token. Con HTTPS activa `QUEQUE_COOKIE_SEGURA=1`.
+- Tras 5 intentos fallidos la cuenta se bloquea 15 minutos. El mensaje de error es el mismo exista o no el correo.
+- Endpoints: `POST /api/auth/login` (`{correo, contrasena}`), `POST /api/auth/logout`, `GET /api/auth/yo`.
+- Las tablas `usuarios` y `sesiones` están en `app/ajustes_002.sql`; una base existente las recibe sola al arrancar la API.
 
 ## El pipeline del README, paso a paso
 
@@ -127,8 +153,8 @@ Dos límites del contrato que el ejemplo rodea y conviene corregir en `contrato/
 ## Qué falta (y dónde se agrega)
 
 - Word antiguo (`.doc`), PDF escaneado (OCR), Excel, PowerPoint e imágenes: una función más en `extraccion.EXTRACTORES`.
-- Autenticación de usuarios. Hoy solo `/api/intranet/sync` admite un token (`QUEQUE_TOKEN_INTRANET`).
-  Los documentos pueden ser confidenciales y `texto_crudo` se guarda sin cifrar.
+- Pantalla para gestionar usuarios (hoy se hace con `python -m app.cli`) e inicio de sesión con la cuenta institucional.
+- Los documentos pueden ser confidenciales y `texto_crudo` se guarda sin cifrar.
 - Agregar `backend/datos/` al `.gitignore` (ya ignora `*.sqlite3`, pero no la carpeta de archivos subidos).
 - Servicios del sistema (systemd o similar) para la API y el worker.
 - Medir el modelo definitivo con 20–30 documentos reales etiquetados antes de fiarse de sus áreas.

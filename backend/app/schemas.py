@@ -66,3 +66,16 @@ class PersonaExternaIn(BaseModel):
 
 class SincronizacionIn(BaseModel):
     personas: list[PersonaExternaIn]
+
+
+# --- Inicio de sesión ---
+class LoginIn(BaseModel):
+    correo: str = Field(min_length=3, max_length=254)
+    contrasena: str = Field(min_length=1, max_length=256)
+
+
+class UsuarioOut(BaseModel):
+    id: int
+    correo: str
+    nombre: str
+    rol: Literal["admin", "coordinador", "consulta"]

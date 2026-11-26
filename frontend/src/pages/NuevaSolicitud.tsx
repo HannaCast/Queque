@@ -1,10 +1,16 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAvisos } from '../components/Avisos'
+import { Vacio } from '../components/Estados'
+import { useAuth } from '../context/AuthContext'
 import { useQueque } from '../context/QuequeContext'
+import { mensajeAmigable } from '../utils/errores'
 
 export function NuevaSolicitud() {
   const { agregarSolicitud } = useQueque()
+  const { puedeEditar } = useAuth()
   const navigate = useNavigate()
+  const avisar = useAvisos()
   const [texto, setTexto] = useState('')
   const [archivo, setArchivo] = useState<File | undefined>()
   const [enviando, setEnviando] = useState(false)
@@ -18,11 +24,28 @@ export function NuevaSolicitud() {
     setError(null)
     try {
       const id = await agregarSolicitud(texto, archivo)
+      avisar('Solicitud enviada a la cola')
       navigate(`/proyecto/${id}`)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo enviar la solicitud')
+      setError(mensajeAmigable(e, 'No se pudo enviar la solicitud'))
       setEnviando(false)
     }
+  }
+
+  if (!puedeEditar) {
+    return (
+      <section className="page">
+        <div className="page-header">
+          <div>
+            <p className="section-label">Entrada</p>
+            <h1>Nueva solicitud</h1>
+          </div>
+        </div>
+        <Vacio icono="candado" titulo="No tienes permiso para crear solicitudes">
+          Tu rol es de consulta. Pide a un coordinador o administrador que la registre.
+        </Vacio>
+      </section>
+    )
   }
 
   return (

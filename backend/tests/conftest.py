@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from app import cli, servicios
+from app import auth, cli, servicios
 from app.analisis.falso import AnalizadorFalso
 from app.config import RAIZ_REPO, Config
 from app.contrato import cargar_contrato
@@ -34,8 +34,30 @@ def con(cfg):
     c.close()
 
 
+CONTRASENA_PRUEBA = "clave-de-prueba-123"
+
+
+def crear_y_entrar(cfg, con, rol: str) -> TestClient:
+    """Crea un usuario con ese rol y devuelve un cliente con su sesión ya iniciada."""
+    correo = f"{rol}@prueba.local"
+    if con.execute("SELECT 1 FROM usuarios WHERE correo = ?", (correo,)).fetchone() is None:
+        auth.crear_usuario(con, correo, rol.capitalize(), CONTRASENA_PRUEBA, rol)
+    c = TestClient(crear_app(cfg))
+    r = c.post("/api/auth/login", json={"correo": correo, "contrasena": CONTRASENA_PRUEBA})
+    assert r.status_code == 200, r.text
+    return c
+
+
 @pytest.fixture
 def cliente(cfg, con):
+    """Cliente con sesión de coordinador: puede crear solicitudes y confirmar (lo que prueban los tests de la API)."""
+    with crear_y_entrar(cfg, con, "coordinador") as c:
+        yield c
+
+
+@pytest.fixture
+def anonimo(cfg, con):
+    """Cliente sin sesión."""
     with TestClient(crear_app(cfg)) as c:
         yield c
 

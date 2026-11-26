@@ -26,6 +26,8 @@ class Config:
     poll_s: float = 2.0
     confirmacion_automatica: bool = False  # False = una persona confirma (README). True = se confirma sola (documento original)
     token_intranet: str | None = None
+    sesion_horas: int = 8                 # cuánto dura una sesión iniciada
+    cookie_segura: bool = False           # True en producción (HTTPS): la cookie solo viaja cifrada
     origenes_cors: tuple[str, ...] = ("http://localhost:5173",)
 
 
@@ -45,5 +47,7 @@ def cargar_config() -> Config:
         limite_tiempo_s=int(env("QUEQUE_LIMITE_TIEMPO_S", "120")),
         confirmacion_automatica=env("QUEQUE_CONFIRMACION_AUTOMATICA", "0").lower() in ("1", "true", "si", "sí"),
         token_intranet=env("QUEQUE_TOKEN_INTRANET") or None,
+        sesion_horas=int(env("QUEQUE_SESION_HORAS", "8")),
+        cookie_segura=env("QUEQUE_COOKIE_SEGURA", "0").lower() in ("1", "true", "si", "sí"),
         origenes_cors=tuple(o.strip() for o in env("QUEQUE_CORS", "http://localhost:5173").split(",") if o.strip()),
     )

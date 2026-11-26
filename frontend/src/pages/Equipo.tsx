@@ -1,5 +1,14 @@
+import { AvisoError, Esqueleto, Vacio } from '../components/Estados'
+import { Icono } from '../components/Icono'
 import { OcupacionBar } from '../components/OcupacionBar'
 import { useQueque } from '../context/QuequeContext'
+import { iniciales } from '../utils/texto'
+
+function estadoDe(ocupado: number): { texto: string; clase: string } {
+  if (ocupado >= 100) return { texto: 'Al 100 %', clase: 'lleno' }
+  if (ocupado <= 0) return { texto: 'Disponible', clase: 'disponible' }
+  return { texto: 'Carga parcial', clase: 'parcial' }
+}
 
 export function Equipo() {
   const { personas, cargando, error } = useQueque()
@@ -17,35 +26,49 @@ export function Equipo() {
         </div>
       </div>
 
-      {error ? <p className="saltado">{error}</p> : null}
+      {error ? <AvisoError mensaje={error} /> : null}
 
-      <div className="list">
-        {cargando ? (
-          <div className="empty panel">Cargando el equipo…</div>
-        ) : personas.length === 0 ? (
-          <div className="empty panel">
-            Todavía no hay personas. Se agregarán desde la intranet o con{' '}
-            <code>python -m app.cli seed</code> en el backend.
-          </div>
-        ) : (
-          personas.map((persona) => (
-            <div className="row" key={persona.id}>
-              <div className="row-main">
-                <h3>{persona.nombre}</h3>
-                <p>
-                  {persona.areas.join(' · ')}
-                  {persona.proyecto_actual
-                    ? ` · ${persona.proyecto_actual}`
-                    : ''}
-                </p>
-                <div style={{ marginTop: '0.75rem', maxWidth: 280 }}>
-                  <OcupacionBar ocupado={persona.porcentaje_ocupado} />
+      {cargando ? (
+        <Esqueleto filas={3} alto={150} />
+      ) : personas.length === 0 ? (
+        <Vacio icono="equipo" titulo="Todavía no hay personas">
+          Se agregarán desde la intranet o con <code>python -m app.cli seed</code> en el backend.
+        </Vacio>
+      ) : (
+        <div className="equipo-grid">
+          {personas.map((persona) => {
+            const estado = estadoDe(persona.porcentaje_ocupado)
+            return (
+              <article className="persona-card" key={persona.id}>
+                <div className="persona-cabecera">
+                  <span className="avatar" aria-hidden="true">
+                    {iniciales(persona.nombre)}
+                  </span>
+                  <div className="persona-nombre">
+                    <h3>{persona.nombre}</h3>
+                    <span className={`estado-libre ${estado.clase}`}>{estado.texto}</span>
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+
+                <div className="areas">
+                  {persona.areas.map((area) => (
+                    <span className="chip" key={area}>
+                      {area}
+                    </span>
+                  ))}
+                </div>
+
+                <OcupacionBar ocupado={persona.porcentaje_ocupado} />
+
+                <p className="persona-proyecto">
+                  <Icono nombre="resumen" tamano={15} />
+                  {persona.proyecto_actual ?? 'Sin proyecto confirmado'}
+                </p>
+              </article>
+            )
+          })}
+        </div>
+      )}
     </section>
   )
 }

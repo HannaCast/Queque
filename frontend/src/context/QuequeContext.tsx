@@ -9,6 +9,7 @@ import {
 } from 'react'
 import * as api from '../api'
 import type { Persona, Proyecto } from '../types'
+import { mensajeAmigable } from '../utils/errores'
 
 interface QuequeContextValue {
   personas: Persona[]
@@ -49,9 +50,7 @@ export function QuequeProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         if (vivo) {
           setError(
-            e instanceof Error
-              ? e.message
-              : 'No se pudo cargar la API. ¿Está corriendo el backend?',
+            mensajeAmigable(e, 'No se pudo cargar la API. ¿Está corriendo el backend?'),
           )
         }
       } finally {

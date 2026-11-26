@@ -1,4 +1,7 @@
-import type { Persona, Proyecto } from './types'
+import type { Persona, Proyecto, Usuario } from './types'
+
+/** Se lanza cuando la API responde 401 fuera del login: la sesión venció o se cerró. */
+export const EVENTO_SESION_EXPIRADA = 'queque:sesion-expirada'
 
 async function leerError(respuesta: Response): Promise<string> {
   try {
@@ -10,9 +13,12 @@ async function leerError(respuesta: Response): Promise<string> {
   }
 }
 
-async function pedir<T>(ruta: string, init?: RequestInit): Promise<T> {
-  const respuesta = await fetch(ruta, init)
+async function pedir<T>(ruta: string, init?: RequestInit, avisarSiExpira = true): Promise<T> {
+  const respuesta = await fetch(ruta, { credentials: 'same-origin', ...init })
   if (!respuesta.ok) {
+    if (respuesta.status === 401 && avisarSiExpira) {
+      window.dispatchEvent(new Event(EVENTO_SESION_EXPIRADA))
+    }
     throw new Error(await leerError(respuesta))
   }
   if (respuesta.status === 204) {
@@ -57,4 +63,29 @@ export function resugerirProyecto(id: number): Promise<Proyecto> {
 
 export function reintentarProyecto(id: number): Promise<Proyecto> {
   return pedir(`/api/proyectos/${id}/reintentar`, { method: 'POST' })
+}
+
+// --- Sesión ---
+export function iniciarSesion(correo: string, contrasena: string): Promise<Usuario> {
+  return pedir(
+    '/api/auth/login',
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ correo, contrasena }),
+    },
+    false,
+  )
+}
+
+export function cerrarSesion(): Promise<void> {
+  return pedir('/api/auth/logout', { method: 'POST' }, false)
+}
+
+/** Devuelve el usuario con sesión, o null si no hay sesión. */
+export async function usuarioActual(): Promise<Usuario | null> {
+  const respuesta = await fetch('/api/auth/yo', { credentials: 'same-origin' })
+  if (respuesta.status === 401) return null
+  if (!respuesta.ok) throw new Error(await leerError(respuesta))
+  return respuesta.json() as Promise<Usuario>
 }
